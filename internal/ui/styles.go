@@ -25,16 +25,12 @@ var (
 	StylePanel = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("62")).
-			Padding(0, 1).
-			MarginRight(1).
-			Width(80)
+			Padding(0, 0).
+			MarginRight(0)
 
 	StyleHeader = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("86")). // Cyan-ish
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(lipgloss.Color("240")).
-			MarginBottom(1)
+			Foreground(lipgloss.Color("86")) // Cyan-ish
 
 	StyleSelected = lipgloss.NewStyle().
 			Foreground(ColorSuccess).

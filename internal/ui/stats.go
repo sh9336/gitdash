@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/gitdash/gitdash/internal/stats"
 )
 
@@ -17,19 +18,22 @@ func NewStatsModel(s *stats.ProjectStats) StatsModel {
 	}
 }
 
-func (m StatsModel) View() string {
+func (m StatsModel) View(width int) string {
 	var s strings.Builder
 
+	// Header
 	s.WriteString(StyleHeader.Render("Project Stats"))
+	s.WriteString("\n")
+	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", width)))
 	s.WriteString("\n")
 
 	if m.Stats == nil {
-		s.WriteString(StyleDim.Render("  No stats available"))
-		return StylePanel.Render(s.String())
+		s.WriteString(StyleDim.Render("   No stats available"))
+		return StylePanel.Copy().Width(width).Render(s.String())
 	}
 
 	// Total files
-	s.WriteString(fmt.Sprintf("Total Files: %d\n\n", m.Stats.TotalFiles))
+	s.WriteString(fmt.Sprintf(" Total Files: %d\n\n", m.Stats.TotalFiles))
 
 	// Languages
 	for i, l := range m.Stats.Languages {
@@ -40,12 +44,9 @@ func (m StatsModel) View() string {
 		barWidth := int(l.Percentage / 2) // scale down
 		bar := strings.Repeat("█", barWidth)
 
-		// Color would be nicer if we had a map of lang -> color
-		// For now just use distinct colors from lipgloss
-
-		line := fmt.Sprintf("%-10s %5.1f%% %s", l.Name, l.Percentage, bar)
+		line := fmt.Sprintf(" %-10s %5.1f%% %s", l.Name, l.Percentage, bar)
 		s.WriteString(line + "\n")
 	}
 
-	return StylePanel.Render(s.String())
+	return StylePanel.Copy().Width(width).Render(s.String())
 }

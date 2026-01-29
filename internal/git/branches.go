@@ -23,9 +23,9 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 
 	// Get HEAD to check current branch
 	headRef, err := r.Head()
-	currentHash := ""
+	currentBranchName := ""
 	if err == nil {
-		currentHash = headRef.Hash().String()
+		currentBranchName = headRef.Name().Short()
 	}
 
 	bs, err := r.Branches()
@@ -35,7 +35,7 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 
 	err = bs.ForEach(func(ref *plumbing.Reference) error {
 		name := ref.Name().Short()
-		isCurrent := ref.Hash().String() == currentHash
+		isCurrent := name == currentBranchName
 
 		// Get last commit for this branch
 		commit, err := r.CommitObject(ref.Hash())
@@ -65,4 +65,16 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 	})
 
 	return branches, nil
+}
+
+// CheckoutBranch checks out the given branch name
+func CheckoutBranch(r *git.Repository, branchName string) error {
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	return w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName("refs/heads/" + branchName),
+	})
 }
