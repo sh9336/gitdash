@@ -20,11 +20,12 @@ const (
 	FocusBranches
 )
 
-type checkoutSuccessMsg struct {
-	BranchName string
-}
-
 type checkoutTickMsg struct{}
+
+type checkoutDoneMsg struct {
+	Path   string
+	Target string
+}
 
 type errMsg error
 
@@ -33,7 +34,8 @@ type refreshMsg struct {
 	BranchesModel BranchesModel
 	CommitsModel  CommitsModel
 	WorkDirModel  WorkDirModel
-	StatsModel    StatsModel
+	StashModel    StashModel
+	StatsModel    *StatsModel // Pointer so we can skip it
 }
 
 type Model struct {
@@ -42,6 +44,7 @@ type Model struct {
 	BranchesModel BranchesModel
 	CommitsModel  CommitsModel
 	WorkDirModel  WorkDirModel
+	StashModel    StashModel
 	StatsModel    StatsModel
 	Viewport      viewport.Model
 	Quitting      bool
@@ -53,19 +56,21 @@ type Model struct {
 	StatusMessage string
 	Spinner       int    // For checkout animation
 	CheckingOut   string // Name of branch being checked out
+	RefreshTries  int
 }
 
 func NewModel(info *git.RepoInfo, cfg *config.Config) Model {
 	// Initial load
 	m := Model{
-		Config:      cfg,
-		RepoInfo:    info,
-		Loading:     true,
-		ShowHelp:    false,
-		Viewport:    viewport.New(0, 0),
-		Focus:       FocusNone, // Start unfocused for normal dashboard scrolling
-		Spinner:     0,
-		CheckingOut: "",
+		Config:       cfg,
+		RepoInfo:     info,
+		Loading:      true,
+		ShowHelp:     false,
+		Viewport:     viewport.New(0, 0),
+		Focus:        FocusNone, // Start unfocused for normal dashboard scrolling
+		Spinner:      0,
+		CheckingOut:  "",
+		RefreshTries: 0,
 	}
 
 	// Use config for commit count
@@ -77,12 +82,14 @@ func NewModel(info *git.RepoInfo, cfg *config.Config) Model {
 	branches, _ := git.GetBranches(info.Repo)
 	commits, _ := git.GetRecentCommits(info.Repo, commitCount)
 	status, _ := git.GetWorkingDirStatus(info.Repo)
+	stashes, _ := git.GetStashList(info.Repo)
 	projectStats, _ := stats.CalculateStats(info.Repo)
 
 	m.BranchesModel = NewBranchesModel(branches)
 	m.BranchesModel.Active = true // Since we default focus
 	m.CommitsModel = NewCommitsModel(commits)
 	m.WorkDirModel = NewWorkDirModel(status)
+	m.StashModel = NewStashModel(stashes)
 	m.StatsModel = NewStatsModel(projectStats)
 	m.Loading = false
 
@@ -93,7 +100,7 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func refreshData(info *git.RepoInfo, cfg *config.Config) tea.Cmd {
+func refreshData(info *git.RepoInfo, cfg *config.Config, fullRefresh bool) tea.Cmd {
 	return func() tea.Msg {
 		newInfo, err := git.GetRepoInfo(info.Path)
 		if err != nil {
@@ -108,32 +115,42 @@ func refreshData(info *git.RepoInfo, cfg *config.Config) tea.Cmd {
 		branches, _ := git.GetBranches(newInfo.Repo)
 		commits, _ := git.GetRecentCommits(newInfo.Repo, commitCount)
 		status, _ := git.GetWorkingDirStatus(newInfo.Repo)
-		projectStats, _ := stats.CalculateStats(newInfo.Repo)
+		stashes, _ := git.GetStashList(newInfo.Repo)
 
-		return refreshMsg{
+		msg := refreshMsg{
 			RepoInfo:      newInfo,
 			BranchesModel: NewBranchesModel(branches),
 			CommitsModel:  NewCommitsModel(commits),
 			WorkDirModel:  NewWorkDirModel(status),
-			StatsModel:    NewStatsModel(projectStats),
+			StashModel:    NewStashModel(stashes),
 		}
+
+		if fullRefresh {
+			projectStats, _ := stats.CalculateStats(newInfo.Repo)
+			statsModel := NewStatsModel(projectStats)
+			msg.StatsModel = &statsModel
+		}
+
+		return msg
 	}
 }
 
-func checkoutCmd(path string, branchName string, cfg *config.Config) tea.Cmd {
+func checkoutCmd(path string, branchName string) tea.Cmd {
 	return func() tea.Msg {
-		r, err := git.GetRepoInfo(path)
+		r, err := git.OpenRepo(path)
 		if err != nil {
 			return errMsg(err)
 		}
 
-		err = git.CheckoutBranch(r.Repo, branchName)
+		err = git.CheckoutBranch(r, branchName)
 		if err != nil {
 			return errMsg(err)
 		}
 
-		// Return success message - refresh will be handled separately
-		return checkoutSuccessMsg{BranchName: branchName}
+		// Increase pause to ensure Windows filesystem has fully settled
+		time.Sleep(300 * time.Millisecond)
+
+		return checkoutDoneMsg{Path: path, Target: branchName}
 	}
 }
 
@@ -142,27 +159,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case checkoutDoneMsg:
+		m.Loading = true
+		m.StatusMessage = fmt.Sprintf("Switched to %s, syncing dashboard...", msg.Target)
+		m.CheckingOut = msg.Target
+		// EXACT SAME logic as pressing 'r' manually
+		return m, refreshData(m.RepoInfo, m.Config, true)
+
 	case checkoutTickMsg:
 		if m.Loading {
 			m.Spinner = (m.Spinner + 1) % 4
 			m.Viewport.SetContent(m.RenderMainContent()) // Update viewport during animation
 			return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg { return checkoutTickMsg{} })
 		}
-
-	case checkoutSuccessMsg:
-		// Handle checkout success message
-		m.StatusMessage = fmt.Sprintf("Checked out %s", msg.BranchName)
-		m.Loading = false
-		m.CheckingOut = "" // Clear checkout state
-		// Trigger refresh with fresh repo info to get updated current branch
-		freshRepoInfo, err := git.GetRepoInfo(m.RepoInfo.Path)
-		if err != nil {
-			m.StatusMessage = fmt.Sprintf("Error getting repo info: %v", err)
-			return m, nil
-		}
-		// Update repo info immediately and trigger refresh command
-		m.RepoInfo = freshRepoInfo
-		return m, refreshData(freshRepoInfo, m.Config)
 
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
@@ -176,32 +185,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case refreshMsg:
 		m.RepoInfo = msg.RepoInfo
-		// Preserve selection if possible?
-		// For now, reset is safer, or try to match name.
-		// Simplest: just use new models.
-		oldSelected := m.BranchesModel.Selected
 		m.BranchesModel = msg.BranchesModel
-		// Restore active state
 		if m.Focus == FocusBranches {
 			m.BranchesModel.Active = true
-		}
-		// Try to restore selection index if valid
-		if oldSelected < len(m.BranchesModel.Branches) {
-			// Actually NewBranchesModel tries to select current branch.
-			// Users expects to stay on what they were hovering? Or jump to current?
-			// If I just checked out, dragging selection to current is good.
-			// So default behavior of NewBranchesModel (select current) is good for checkout.
 		}
 
 		m.CommitsModel = msg.CommitsModel
 		m.WorkDirModel = msg.WorkDirModel
-		m.StatsModel = msg.StatsModel
+		m.StashModel = msg.StashModel
+		if msg.StatsModel != nil {
+			m.StatsModel = *msg.StatsModel
+		}
+
+		// Reset state completely
 		m.Loading = false
-		m.StatusMessage = fmt.Sprintf("Checked out %s", m.RepoInfo.CurrentBranch)
-		m.Viewport.SetContent(m.RenderMainContent()) // Force viewport update
+		m.CheckingOut = ""
+		m.StatusMessage = fmt.Sprintf("Switched to branch: %s", m.RepoInfo.CurrentBranch)
+
+		// Hard content flush
+		m.Viewport.SetContent(m.RenderMainContent())
+		m.Viewport.GotoTop()
+		return m, nil
 
 	case errMsg:
+		m.Loading = false
+		m.CheckingOut = ""
+		m.RefreshTries = 0
 		m.StatusMessage = fmt.Sprintf("Error: %v", msg)
+		m.Viewport.SetContent(m.RenderMainContent())
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -211,7 +222,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			m.Loading = true
 			m.StatusMessage = "Refreshing..."
-			return m, refreshData(m.RepoInfo, m.Config)
+			return m, refreshData(m.RepoInfo, m.Config, true) // Force full refresh on 'r'
 		case "?", "/":
 			m.ShowHelp = !m.ShowHelp
 			return m, nil
@@ -252,12 +263,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Loading = true
 				m.StatusMessage = fmt.Sprintf("Checking out %s", b.Name)
 				m.CheckingOut = b.Name
+				m.RefreshTries = 0
 				m.Spinner = 0
 				m.Viewport.SetContent(m.RenderMainContent()) // Update viewport immediately
 				// Start spinner animation and checkout
 				return m, tea.Batch(
 					tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg { return checkoutTickMsg{} }),
-					checkoutCmd(m.RepoInfo.Path, b.Name, m.Config),
+					checkoutCmd(m.RepoInfo.Path, b.Name),
 				)
 			}
 		}
@@ -284,6 +296,7 @@ func (m Model) RenderMainContent() string {
 		"\n",
 		m.BranchesModel.View(panelWidth, m.Loading, m.CheckingOut, m.Spinner),
 		m.CommitsModel.View(panelWidth),
+		m.StashModel.View(panelWidth),
 		m.StatsModel.View(panelWidth),
 		m.WorkDirModel.View(panelWidth),
 	)
@@ -303,7 +316,10 @@ func (m Model) View() string {
 	// Header
 	header := lipgloss.JoinVertical(lipgloss.Left,
 		StyleTitle.Render("GitDash"),
-		fmt.Sprintf(" • %s • %s", m.RepoInfo.Path, m.RepoInfo.CurrentBranch),
+		fmt.Sprintf(" • %s • %s%s",
+			m.RepoInfo.Path,
+			StyleSelected.Render(" "+m.RepoInfo.CurrentBranch), // Branch icon and highlight
+			StyleDim.Render(" (HEAD moved)")),
 		"\n",
 	)
 	s.WriteString(header)

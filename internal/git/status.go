@@ -12,6 +12,7 @@ type FileStatus struct {
 
 type WorkingDirStatus struct {
 	Files      []FileStatus
+	BranchName string
 	Modified   int
 	Staged     int
 	Untracked  int
@@ -30,8 +31,16 @@ func GetWorkingDirStatus(r *git.Repository) (*WorkingDirStatus, error) {
 		return nil, err
 	}
 
+	// Get current branch name
+	head, err := r.Head()
+	branchName := "unknown"
+	if err == nil {
+		branchName = head.Name().Short()
+	}
+
 	ws := &WorkingDirStatus{
-		Files: []FileStatus{},
+		Files:      []FileStatus{},
+		BranchName: branchName,
 	}
 
 	for path, s := range status {

@@ -73,14 +73,14 @@ func (m BranchesModel) View(width int, loading bool, checkingOut string, spinner
 
 		cursor := "  "
 		if b.IsCurrent {
-			cursor = " ●" // Bullet for current branch
+			cursor = " ●" // Bullet for HEAD
 		}
 
 		// Visual indicator for selection cursor
 		if m.Active && i == m.Selected {
-			cursor = " >"
+			cursor = " ▶" // Selection arrow
 			if b.IsCurrent {
-				cursor = " >●" // Both selection and current branch
+				cursor = " ★" // Star for both selection and HEAD
 			}
 		}
 
@@ -91,8 +91,8 @@ func (m BranchesModel) View(width int, loading bool, checkingOut string, spinner
 
 		// Highlight the entire line if selected and active
 		lineContent := b.Name
-		if b.IsCurrent && !m.Active {
-			lineContent = "★ " + b.Name // Star indicator for current branch when unfocused
+		if b.IsCurrent {
+			lineContent = "HEAD → " + b.Name
 		}
 
 		timeStr := humanize.Time(b.LastCommit)

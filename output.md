@@ -1,42 +1,6 @@
-# GitDash
-
-GitDash is a terminal UI dashboard that provides developers with an instant, visual overview of their Git repositories. Built with Go and Bubble Tea.
-
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Go Version](https://img.shields.io/badge/go-1.21%2B-blue)
-
-## Features
-
-- **📊 Dashboard Overview**: View branch status, recent commits, and working directory state in one view.
-- **🌳 Branch Management**: List local branches with recency; perform **verified checkouts** directly from the UI.
-- **📝 Commit History**: Recent commits reachable from HEAD with hash, author, and relative time.
-- **📁 File Status**: Visual indicators for modified, staged, and untracked files.
-- **📦 Stash Visibility**: Instant view of your stash stack with IDs and relative timestamps.
-- **📈 Project Stats**: Language distribution and file counts updated in real-time.
-
-## Installation
-
-### From Source
-
-```bash
-git clone https://github.com/yourusername/gitdash.git
-cd gitdash
-go install ./cmd/gitdash
-```
-
-## Usage
-
-Run GitDash in your git repository:
-
-```bash
-gitdash
-# or specify a path
-gitdash --path /path/to/repo
-
-```
+# GitDash Terminal Output Snapshot
 
 
-```text
  GitDash  
  
  • C/GoCodes/gitdash •  testbranch (HEAD moved)
@@ -48,7 +12,7 @@ gitdash --path /path/to/repo
  ╰────────────────────────────────────────────────────────────────╯
 
  ╭────────────────────────────────────────────────────────────────╮
- │ Recent Commits                                                 │
+ │ Recent Commits                               │
  │ ────────────────────────────────────────────────────────────── │
  │ 63a6d6e feat: Branch Switch                                    │
  │         sh9336, 1 hour ago                                     │
@@ -80,25 +44,4 @@ gitdash --path /path/to/repo
  ╰────────────────────────────────────────────────────────────────╯
 
  Press 'q' to quit, 'r' to refresh, '?' for help, 'Tab' to focus • Switched to branch: testbranch
-```
 
-
-
-### Controls
-
-- `Tab`: Cycle focus between dashboard sections.
-- `Enter`: Perform primary action for focused section (e.g., Checkout Branch).
-- `r`: Force a full dashboard synchronicity audit.
-- `?`: Toggle help overlay.
-- `q` or `Ctrl+C`: Exit GitDash.
-
-## Tech Stack
-
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea)
-- [Lipgloss](https://github.com/charmbracelet/lipgloss)
-- [Go-Git](https://github.com/go-git/go-git)
-- [Cobra](https://github.com/spf13/cobra)
-
-## License
-
-MIT

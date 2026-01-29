@@ -9,6 +9,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+type Repository = git.Repository
+
 type RepoInfo struct {
 	Path          string
 	CurrentBranch string
@@ -17,33 +19,7 @@ type RepoInfo struct {
 	Repo          *git.Repository
 }
 
-// FindRepo walks up the directory tree to find a .git directory
-func FindRepo(startPath string) (string, error) {
-	path, err := filepath.Abs(startPath)
-	if err != nil {
-		return "", err
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
-			return path, nil
-		}
-
-		parent := filepath.Dir(path)
-		if parent == path {
-			return "", errors.New("git repository not found")
-		}
-		path = parent
-	}
-}
-
-// GetRepoInfo opens the repository and extracts basic information
-func GetRepoInfo(path string) (*RepoInfo, error) {
-	r, err := git.PlainOpen(path)
-	if err != nil {
-		return nil, err
-	}
-
+func GetRepoInfoFromRepo(path string, r *git.Repository) (*RepoInfo, error) {
 	// Get current branch
 	headRef, err := r.Head()
 	currentBranch := ""
@@ -55,6 +31,8 @@ func GetRepoInfo(path string) (*RepoInfo, error) {
 		}
 	} else if err == plumbing.ErrReferenceNotFound {
 		currentBranch = "Empty Repository"
+	} else {
+		return nil, err
 	}
 
 	// Check status
@@ -85,4 +63,38 @@ func GetRepoInfo(path string) (*RepoInfo, error) {
 		Remotes:       remoteURLs,
 		Repo:          r,
 	}, nil
+}
+
+// FindRepo walks up the directory tree to find a .git directory
+func FindRepo(startPath string) (string, error) {
+	path, err := filepath.Abs(startPath)
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
+			return path, nil
+		}
+
+		parent := filepath.Dir(path)
+		if parent == path {
+			return "", errors.New("git repository not found")
+		}
+		path = parent
+	}
+}
+
+// GetRepoInfo opens the repository and extracts basic information
+func GetRepoInfo(path string) (*RepoInfo, error) {
+	r, err := git.PlainOpen(path)
+	if err != nil {
+		return nil, err
+	}
+	return GetRepoInfoFromRepo(path, r)
+}
+
+// OpenRepo returns the go-git repository object for the given path
+func OpenRepo(path string) (*git.Repository, error) {
+	return git.PlainOpen(path)
 }

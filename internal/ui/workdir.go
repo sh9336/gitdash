@@ -24,6 +24,7 @@ func (m WorkDirModel) View(width int) string {
 
 	// Header
 	s.WriteString(StyleHeader.Render("Working Directory"))
+	s.WriteString(StyleDim.Render(fmt.Sprintf(" (On branch: %s)", m.Status.BranchName)))
 	s.WriteString("\n")
 	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", width)))
 	s.WriteString("\n")
