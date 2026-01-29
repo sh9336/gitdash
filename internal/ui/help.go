@@ -41,12 +41,12 @@ func (m Model) helpView() string {
 	s.WriteString(titleStyle.Render("Help & Controls"))
 	s.WriteString("\n\n")
 
-	s.WriteString(row("q / Esc", "Quit application"))
+	s.WriteString(row("q", "Quit application"))
 	s.WriteString(row("r", "Refresh dashboard"))
-	s.WriteString(row("?", "Close help"))
+	s.WriteString(row("? / Esc", "Close help"))
 
 	s.WriteString("\n")
-	s.WriteString(StyleDim.Render("GitDash v0.1.0"))
+	s.WriteString(StyleDim.Render("Press Esc to return"))
 
 	// Center the modal
 	// We need to calculate margins to center it in m.Width x m.Height
