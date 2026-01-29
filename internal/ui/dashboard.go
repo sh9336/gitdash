@@ -144,32 +144,27 @@ func (m Model) View() string {
 	// Header
 	s.WriteString(StyleTitle.Render("GitDash"))
 	s.WriteString(fmt.Sprintf(" • %s • %s", m.RepoInfo.Path, m.RepoInfo.CurrentBranch))
-	s.WriteString("\n\n")
+	s.WriteString("\n") // Reduced gap
 
-	// Main Layout
-	// Row 1: Branches | Commits
-	row1 := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		m.BranchesModel.View(),
-		m.CommitsModel.View(),
-	)
+	// Main Layout: Vertical Stack
+	// Branches -> Commits -> Stats -> WorkDir
 
-	// Row 2: WorkDir | Stats
-	row2 := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		m.WorkDirModel.View(),
-		m.StatsModel.View(),
-	)
+	// Note: Without updating styles.go to allow flexible width,
+	// boxes will default to their content width + padding.
+	// To force full width, ideally we update StylePanel.
+	// For now, let's just stack them.
 
 	mainContent := lipgloss.JoinVertical(
 		lipgloss.Left,
-		row1,
-		row2,
+		m.BranchesModel.View(),
+		m.CommitsModel.View(),
+		m.StatsModel.View(),
+		m.WorkDirModel.View(),
 	)
 
 	s.WriteString(mainContent)
 
-	// Help
+	// Help Footer
 	helpText := "Press 'q' to quit, 'r' to refresh, '?' for help"
 	if m.Loading {
 		helpText += " • Refreshing..."
