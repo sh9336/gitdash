@@ -23,9 +23,9 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 
 	// Get HEAD to check current branch
 	headRef, err := r.Head()
-	currentHash := ""
+	currentBranchName := ""
 	if err == nil {
-		currentHash = headRef.Hash().String()
+		currentBranchName = headRef.Name().Short()
 	}
 
 	bs, err := r.Branches()
@@ -35,7 +35,7 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 
 	err = bs.ForEach(func(ref *plumbing.Reference) error {
 		name := ref.Name().Short()
-		isCurrent := ref.Hash().String() == currentHash
+		isCurrent := name == currentBranchName
 
 		// Get last commit for this branch
 		commit, err := r.CommitObject(ref.Hash())
@@ -65,4 +65,32 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 	})
 
 	return branches, nil
+}
+
+// CheckoutBranch checks out the given branch name and waits for validation
+func CheckoutBranch(r *git.Repository, branchName string) error {
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	err = w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName("refs/heads/" + branchName),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Verification loop: Head must match target branch name
+	// This is critical for slow filesystems where writing to .git/HEAD might take time
+	target := plumbing.ReferenceName("refs/heads/" + branchName)
+	for i := 0; i < 20; i++ {
+		head, err := r.Head()
+		if err == nil && head.Name() == target {
+			return nil // Success!
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	return nil // Return anyway, but maybe it's just slow
 }

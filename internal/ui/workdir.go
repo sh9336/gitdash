@@ -19,27 +19,30 @@ func NewWorkDirModel(status *git.WorkingDirStatus) WorkDirModel {
 	}
 }
 
-func (m WorkDirModel) View() string {
+func (m WorkDirModel) View(width int) string {
 	var s strings.Builder
 
+	// Header
 	s.WriteString(StyleHeader.Render("Working Directory"))
+	s.WriteString(StyleDim.Render(fmt.Sprintf(" (On branch: %s)", m.Status.BranchName)))
+	s.WriteString("\n")
+	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", width)))
 	s.WriteString("\n")
 
 	if len(m.Status.Files) == 0 {
-		s.WriteString(StyleDim.Render("  Working directory clean"))
-		return StylePanel.Render(s.String())
+		s.WriteString(StyleDim.Render("   Working directory clean"))
+		return StylePanel.Copy().Width(width).Render(s.String())
 	}
 
 	// Summaries
-	// Summaries
 	if m.Status.Modified > 0 {
-		s.WriteString(fmt.Sprintf("%s Modified: %d\n", lipgloss.NewStyle().Foreground(ColorWarning).Render("●"), m.Status.Modified))
+		s.WriteString(fmt.Sprintf(" %s Modified: %d\n", lipgloss.NewStyle().Foreground(ColorWarning).Render("●"), m.Status.Modified))
 	}
 	if m.Status.Staged > 0 {
-		s.WriteString(fmt.Sprintf("%s Staged: %d\n", lipgloss.NewStyle().Foreground(ColorSuccess).Render("✓"), m.Status.Staged))
+		s.WriteString(fmt.Sprintf(" %s Staged: %d\n", lipgloss.NewStyle().Foreground(ColorSuccess).Render("✓"), m.Status.Staged))
 	}
 	if m.Status.Untracked > 0 {
-		s.WriteString(fmt.Sprintf("%s Untracked: %d\n", lipgloss.NewStyle().Foreground(ColorError).Render("?"), m.Status.Untracked))
+		s.WriteString(fmt.Sprintf(" %s Untracked: %d\n", lipgloss.NewStyle().Foreground(ColorError).Render("?"), m.Status.Untracked))
 	}
 
 	s.WriteString("\n")
@@ -58,11 +61,7 @@ func (m WorkDirModel) View() string {
 
 	count := 0
 	for _, f := range sortedFiles {
-		if count >= 10 {
-			s.WriteString(StyleDim.Render(fmt.Sprintf("... and %d more", len(sortedFiles)-10)))
-			break
-		}
-
+		// No limit on files shown
 		icon := " "
 		color := StyleNormal
 
@@ -81,9 +80,9 @@ func (m WorkDirModel) View() string {
 			}
 		}
 
-		s.WriteString(fmt.Sprintf("%s %s\n", color.Render(icon), f.Path))
+		s.WriteString(fmt.Sprintf(" %s %s\n", color.Render(icon), f.Path))
 		count++
 	}
 
-	return StylePanel.Render(s.String())
+	return StylePanel.Copy().Width(width).Render(s.String())
 }

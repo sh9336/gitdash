@@ -19,39 +19,44 @@ func NewCommitsModel(commits []git.Commit) CommitsModel {
 	}
 }
 
-func (m CommitsModel) View() string {
+func (m CommitsModel) View(width int) string {
 	var s strings.Builder
 
+	// Header
 	s.WriteString(StyleHeader.Render("Recent Commits"))
+	s.WriteString("\n")
+	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", width)))
 	s.WriteString("\n")
 
 	if len(m.Commits) == 0 {
-		s.WriteString(StyleDim.Render("  No commits found"))
-		return StylePanel.Render(s.String())
+		s.WriteString(StyleDim.Render("   No commits found"))
+		return StylePanel.Copy().Width(width).Render(s.String())
 	}
 
 	for _, c := range m.Commits {
 		// Truncate hash
 		hash := c.Hash[:7]
 
-		// Truncate message if too long (simple approach)
-		msg := strings.Split(c.Message, "\n")[0] // First line only
-		if len(msg) > 50 {
-			msg = msg[:47] + "..."
+		// Message truncation
+		msg := strings.Split(c.Message, "\n")[0]
+		maxLen := width - 14 // 14 gives space for padding check
+		if maxLen < 10 {
+			maxLen = 10
+		}
+		if len(msg) > maxLen {
+			msg = msg[:maxLen-3] + "..."
 		}
 
 		timeStr := humanize.Time(c.When)
 
 		// Layout: Hash Msg Author Time
-		// a7f3d92 feat: add stats panel
-		//         John Doe, 2 hours ago
-
-		line1 := fmt.Sprintf("%s %s",
+		// Add padding " "
+		line1 := fmt.Sprintf(" %s %s",
 			lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Render(hash),
 			StyleNormal.Render(msg),
 		)
 
-		line2 := fmt.Sprintf("        %s, %s",
+		line2 := fmt.Sprintf("         %s, %s",
 			StyleDim.Render(c.Author),
 			StyleDim.Render(timeStr),
 		)
@@ -59,5 +64,5 @@ func (m CommitsModel) View() string {
 		s.WriteString(line1 + "\n" + line2 + "\n")
 	}
 
-	return StylePanel.Render(s.String())
+	return StylePanel.Copy().Width(width).Render(s.String())
 }
