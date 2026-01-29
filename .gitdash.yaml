@@ -1,0 +1,12 @@
+dashboard:
+  refresh_interval: 30s
+  default_view: overview
+
+commits:
+  show_count: 15
+  show_author: true
+  show_relative_time: true
+
+display:
+  colors: true
+  unicode: true
