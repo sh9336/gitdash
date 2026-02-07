@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gitdash/gitdash/internal/stats"
+	"github.com/sh9336/gitdash/internal/stats"
 )
 
 type StatsModel struct {

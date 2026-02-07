@@ -1,4 +1,4 @@
-module github.com/gitdash/gitdash
+module github.com/sh9336/gitdash
 
 go 1.25.1
 

@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gitdash/gitdash/internal/config"
-	"github.com/gitdash/gitdash/internal/git"
-	"github.com/gitdash/gitdash/internal/stats"
+	"github.com/sh9336/gitdash/internal/config"
+	"github.com/sh9336/gitdash/internal/git"
+	"github.com/sh9336/gitdash/internal/stats"
 )
 
 type FocusArea int

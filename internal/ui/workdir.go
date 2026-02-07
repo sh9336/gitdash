@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gitdash/gitdash/internal/git"
+	"github.com/sh9336/gitdash/internal/git"
 )
 
 type WorkDirModel struct {
