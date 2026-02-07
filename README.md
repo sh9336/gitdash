@@ -17,7 +17,7 @@
 Ensure you have [Go](https://golang.org/dl/) installed (version 1.18+), then run:
 
 ```bash
-go install github.com/sh9336/gitdash/cmd/gitdash@latest
+go install github.com/sh9336/gitdash/cmd/gitdash@v1.0.1
 ```
 
 Ensure your `GOBIN` directory (typically `~/go/bin`) is in your system `PATH`.
