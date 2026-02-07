@@ -4,7 +4,9 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 type Commit struct {
@@ -15,15 +17,25 @@ type Commit struct {
 	When        time.Time
 }
 
-// GetRecentCommits returns the last n commits from the current HEAD
-func GetRecentCommits(r *git.Repository, n int) ([]Commit, error) {
-	// check if head exists (might be empty repo)
-	ref, err := r.Head()
-	if err != nil {
-		return nil, nil // Empty repo or other error, return empty list
+// GetRecentCommits returns the last n commits from the given branch (or HEAD if empty)
+func GetRecentCommits(r *git.Repository, branchName string, n int) ([]Commit, error) {
+	var hash plumbing.Hash
+
+	if branchName == "" {
+		ref, err := r.Head()
+		if err != nil {
+			return nil, nil // Empty repo or other error, return empty list
+		}
+		hash = ref.Hash()
+	} else {
+		ref, err := r.Reference(plumbing.ReferenceName("refs/heads/"+branchName), true)
+		if err != nil {
+			return nil, err
+		}
+		hash = ref.Hash()
 	}
 
-	cIter, err := r.Log(&git.LogOptions{From: ref.Hash()})
+	cIter, err := r.Log(&git.LogOptions{From: hash})
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +43,6 @@ func GetRecentCommits(r *git.Repository, n int) ([]Commit, error) {
 	var commits []Commit
 	count := 0
 	err = cIter.ForEach(func(c *object.Commit) error {
-		if count >= n {
-			return nil // Stop iterating
-		}
-
 		commits = append(commits, Commit{
 			Hash:        c.Hash.String(),
 			Message:     c.Message,
@@ -43,6 +51,10 @@ func GetRecentCommits(r *git.Repository, n int) ([]Commit, error) {
 			When:        c.Author.When,
 		})
 		count++
+
+		if count >= n {
+			return storer.ErrStop
+		}
 		return nil
 	})
 

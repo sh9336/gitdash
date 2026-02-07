@@ -2,6 +2,7 @@ package git
 
 import (
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 type FileStatus struct {
@@ -31,11 +32,17 @@ func GetWorkingDirStatus(r *git.Repository) (*WorkingDirStatus, error) {
 		return nil, err
 	}
 
-	// Get current branch name
+	// Determine if we are in detached HEAD or empty repo
 	head, err := r.Head()
 	branchName := "unknown"
 	if err == nil {
-		branchName = head.Name().Short()
+		if head.Name().IsBranch() {
+			branchName = head.Name().Short()
+		} else {
+			branchName = "Detached HEAD (" + head.Hash().String()[:7] + ")"
+		}
+	} else if err == plumbing.ErrReferenceNotFound {
+		branchName = "Empty Repository"
 	}
 
 	ws := &WorkingDirStatus{
@@ -48,8 +55,11 @@ func GetWorkingDirStatus(r *git.Repository) (*WorkingDirStatus, error) {
 		stagedCode := string(s.Staging)
 
 		isStaged := stagedCode != " " && stagedCode != "?"
-		isModified := code == "M"
+		isModified := code == "M" || stagedCode == "M"
 		isUntracked := code == "?"
+		isDeleted := code == "D" || stagedCode == "D"
+		isAdded := stagedCode == "A"
+		isConflicted := code == "C" || stagedCode == "C" || code == "U" || stagedCode == "U"
 
 		// Determine display status
 		displayStatus := code
@@ -58,7 +68,7 @@ func GetWorkingDirStatus(r *git.Repository) (*WorkingDirStatus, error) {
 			ws.Staged++
 		}
 
-		if isModified {
+		if isModified && !isStaged {
 			ws.Modified++
 		}
 
@@ -67,8 +77,18 @@ func GetWorkingDirStatus(r *git.Repository) (*WorkingDirStatus, error) {
 			ws.Untracked++
 		}
 
-		if code == "C" || stagedCode == "C" {
+		if isConflicted {
 			ws.Conflicted++
+		}
+
+		// Consider Deleted and Added in Modified/Staged counts?
+		// For simplicity, let's just make sure they are counted.
+		if isDeleted && !isStaged {
+			ws.Modified++
+		}
+
+		if isAdded {
+			// ws.Staged++ // Already handled by isStaged logic
 		}
 
 		ws.Files = append(ws.Files, FileStatus{
