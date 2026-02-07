@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
-	"github.com/gitdash/gitdash/internal/git"
+	"github.com/sh9336/gitdash/internal/git"
 )
 
 type CommitsModel struct {

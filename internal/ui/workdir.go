@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gitdash/gitdash/internal/git"
+	"github.com/sh9336/gitdash/internal/git"
 )
 
 type WorkDirModel struct {
@@ -28,6 +28,11 @@ func (m WorkDirModel) View(width int) string {
 	s.WriteString("\n")
 	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", width)))
 	s.WriteString("\n")
+
+	if m.Status == nil {
+		s.WriteString(StyleDim.Render("   Error loading status"))
+		return StylePanel.Copy().Width(width).Render(s.String())
+	}
 
 	if len(m.Status.Files) == 0 {
 		s.WriteString(StyleDim.Render("   Working directory clean"))

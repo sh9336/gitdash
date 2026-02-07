@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -68,7 +69,7 @@ func GetBranches(r *git.Repository) ([]Branch, error) {
 }
 
 // CheckoutBranch checks out the given branch name and waits for validation
-func CheckoutBranch(r *git.Repository, branchName string) error {
+func CheckoutBranch(r *git.Repository, branchName string, force bool) error {
 	w, err := r.Worktree()
 	if err != nil {
 		return err
@@ -76,6 +77,7 @@ func CheckoutBranch(r *git.Repository, branchName string) error {
 
 	err = w.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName("refs/heads/" + branchName),
+		Force:  force,
 	})
 	if err != nil {
 		return err
@@ -92,5 +94,5 @@ func CheckoutBranch(r *git.Repository, branchName string) error {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	return nil // Return anyway, but maybe it's just slow
+	return fmt.Errorf("checkout verification failed: head still at %v", target) // Or current head name
 }

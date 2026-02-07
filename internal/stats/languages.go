@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -43,17 +44,24 @@ var extToLang = map[string]string{
 }
 
 // CalculateStats analyzes the repository content (simplified version)
-func CalculateStats(r *gogit.Repository) (*ProjectStats, error) {
-	// In a real implementation, we would walk the HEAD tree properly.
-	// For simplicity and speed in MVP, we might just scan the worktree?
-	// But standard practice is to scan HEAD.
+func CalculateStats(r *gogit.Repository, branchName string) (*ProjectStats, error) {
+	var hash plumbing.Hash
 
-	head, err := r.Head()
-	if err != nil {
-		return nil, err
+	if branchName == "" {
+		head, err := r.Head()
+		if err != nil {
+			return nil, err
+		}
+		hash = head.Hash()
+	} else {
+		ref, err := r.Reference(plumbing.ReferenceName("refs/heads/"+branchName), true)
+		if err != nil {
+			return nil, err
+		}
+		hash = ref.Hash()
 	}
 
-	commit, err := r.CommitObject(head.Hash())
+	commit, err := r.CommitObject(hash)
 	if err != nil {
 		return nil, err
 	}

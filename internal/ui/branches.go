@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
-	"github.com/gitdash/gitdash/internal/git"
+	"github.com/sh9336/gitdash/internal/git"
 )
 
 type BranchesModel struct {
