@@ -1,9 +1,17 @@
-# GitDash Terminal Output Snapshot
+# GitDash
 
+A terminal-based Git dashboard for visualizing repository information at a glance.
 
+## Project Overview
+
+GitDash provides a comprehensive terminal interface to monitor your Git repository status, including branches, recent commits, stash entries, and project statistics.
+
+## Terminal Output Snapshot
+
+```
  GitDash  
  
- • C/GoCodes/gitdash •  testbranch (HEAD moved)
+ • C/GoCodes/gitdash •  testbranch (HEAD moved)
 
  ╭────────────────────────────────────────────────────────────────╮
  │ ★ Branches (2)                                                 │
@@ -12,7 +20,7 @@
  ╰────────────────────────────────────────────────────────────────╯
 
  ╭────────────────────────────────────────────────────────────────╮
- │ Recent Commits                               │
+ │ Recent Commits                                                 │
  │ ────────────────────────────────────────────────────────────── │
  │ 63a6d6e feat: Branch Switch                                    │
  │         sh9336, 1 hour ago                                     │
@@ -44,4 +52,18 @@
  ╰────────────────────────────────────────────────────────────────╯
 
  Press 'q' to quit, 'r' to refresh, '?' for help, 'Tab' to focus • Switched to branch: testbranch
+```
+
+## Technology Stack
+
+- **Backend:** Go (100% of project)
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `r` | Refresh |
+| `?` | Help |
+| `Tab` | Focus |
 
